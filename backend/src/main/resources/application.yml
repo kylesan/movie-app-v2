@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/movieapp}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH0_ISSUER_URI}
+
+auth0:
+  audience: ${AUTH0_AUDIENCE}
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:3000}
+
+tmdb:
+  api:
+    key: ${TMDB_API_KEY}
+    base-url: https://api.themoviedb.org/3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
