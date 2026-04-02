@@ -25,6 +25,9 @@ class MovieController(private val movieService: MovieService) {
                 watchedYear = request.watchedYear,
                 watchedAt = request.watchedAt,
                 source = request.source,
+                coverUrl = request.coverUrl,
+                overview = request.overview,
+                tmdbId = request.tmdbId,
                 addedBy = addedBy
             )
         )
@@ -52,16 +55,22 @@ class MovieController(private val movieService: MovieService) {
         source = request.source,
         addedBy = jwt.subject
     ))
+    @GetMapping("/all")
+    fun getAll(): List<Movie> =
+        movieService.getAllMovies()
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun delete(@PathVariable id: String) =
-        movieService.deleteMovie(id)
+    @DeleteMapping
+    fun deleteMultiple(@RequestBody ids: List<String>) =
+        ids.forEach { movieService.deleteMovie(it) }
 }
 
 data class MovieRequest(
     val title: String,
     val watchedYear: Int,
     val watchedAt: String? = null,
-    val source: String? = null
+    val source: String? = null,
+    val coverUrl: String? = null,
+    val overview: String? = null,
+    val tmdbId: String? = null
 )
+

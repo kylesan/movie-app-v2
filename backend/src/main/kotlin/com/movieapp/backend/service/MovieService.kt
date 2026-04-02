@@ -37,4 +37,7 @@ class MovieService(private val movieRepository: MovieRepository) {
 
     fun deleteMovie(id: String) =
         movieRepository.deleteById(id)
+
+    fun getAllMovies(): List<Movie> =
+        movieRepository.findAll()
 }
