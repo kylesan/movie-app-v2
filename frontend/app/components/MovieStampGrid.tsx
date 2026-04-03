@@ -16,16 +16,21 @@ export default function MovieStampGrid({ year, onMoviesDeleted }: { year: number
   const [deleting, setDeleting] = useState(false);
 
   const fetchMovies = async () => {
-    setLoading(true);
-    try {
-      const url = year ? `/api/movies?year=${year}` : `/api/movies/all`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setMovies(Array.isArray(data) ? data : []);
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    const url = year ? `/api/movies?year=${year}` : `/api/movies/all`;
+    const res = await fetch(url);
+    const text = await res.text();
+    if (!text) {
+      setMovies([]);
+      return;
     }
-  };
+    const data = JSON.parse(text);
+    setMovies(Array.isArray(data) ? data : []);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchMovies();

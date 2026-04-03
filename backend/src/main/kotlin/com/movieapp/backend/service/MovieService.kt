@@ -2,10 +2,14 @@ package com.movieapp.backend.service
 
 import com.movieapp.backend.model.Movie
 import com.movieapp.backend.repository.MovieRepository
+import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.stereotype.Service
 
 @Service
-class MovieService(private val movieRepository: MovieRepository) {
+class MovieService(
+    private val movieRepository: MovieRepository,
+    private val mongoTemplate: MongoTemplate
+) {
 
     fun createMovie(movie: Movie): Movie =
         movieRepository.save(movie)
@@ -38,6 +42,13 @@ class MovieService(private val movieRepository: MovieRepository) {
     fun deleteMovie(id: String) =
         movieRepository.deleteById(id)
 
-    fun getAllMovies(): List<Movie> =
-        movieRepository.findAll()
+    fun getAllMovies(): List<Movie> {
+        val db = mongoTemplate.db.name
+        val collections = mongoTemplate.collectionNames
+        println("Connected to database: $db")
+        println("Available collections: $collections")
+        val movies = movieRepository.findAll()
+        println("Repository findAll returned: ${movies.size} movies")
+        return movies
+    }
 }

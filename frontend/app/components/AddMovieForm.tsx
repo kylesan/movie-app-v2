@@ -24,15 +24,14 @@ export default function AddMovieForm({
   const [bulkText, setBulkText] = useState("");
   const [bulkProgress, setBulkProgress] = useState<string[]>([]);
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkYear, setBulkYear] = useState<number | null>(null);
   const currentYear = new Date().getFullYear();
 
   const searchMovies = async () => {
     if (!query.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(
-        `/api/tmdb/search?q=${encodeURIComponent(query)}`,
-      );
+      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       setResults(data.results || []);
     } finally {
@@ -65,6 +64,8 @@ export default function AddMovieForm({
   };
 
   const runBulkAdd = async () => {
+    const watchedYear = bulkYear ?? currentYear;
+
     const lines = bulkText
       .split("\n")
       .map((l) => l.trim())
@@ -76,9 +77,8 @@ export default function AddMovieForm({
     setBulkProgress([]);
 
     for (const line of lines) {
-      // Check if last word is a 4-digit year
       const yearMatch = line.match(/\s(\d{4})$/);
-      const year = yearMatch?.[1] ? parseInt(yearMatch[1]) : null;
+      const tmdbYear = yearMatch?.[1] ? parseInt(yearMatch[1]) : null;
       const title = yearMatch
         ? line.slice(0, line.lastIndexOf(yearMatch[0])).trim()
         : line.trim();
@@ -86,16 +86,13 @@ export default function AddMovieForm({
       setBulkProgress((prev) => [...prev, `🔍 Searching: ${line}`]);
 
       try {
-        const res = await fetch(
-          `/api/tmdb/search?q=${encodeURIComponent(title)}`,
-        );
+        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(title)}`);
         const data = await res.json();
         let results = data.results || [];
 
-        // If year specified, filter by that release year
-        if (year) {
+        if (tmdbYear) {
           const filtered = results.filter((m: any) =>
-            m.release_date?.startsWith(year.toString()),
+            m.release_date?.startsWith(tmdbYear.toString())
           );
           if (filtered.length > 0) results = filtered;
         }
@@ -113,7 +110,7 @@ export default function AddMovieForm({
           body: JSON.stringify({
             tmdbId: top.id.toString(),
             title: top.title,
-            watchedYear: currentYear,
+            watchedYear,
             coverUrl: top.poster_path
               ? `https://image.tmdb.org/t/p/w500${top.poster_path}`
               : null,
@@ -123,7 +120,7 @@ export default function AddMovieForm({
 
         setBulkProgress((prev) => [
           ...prev,
-          `✅ Added: ${top.title} (${top.release_date?.split("-")[0]})`,
+          `✅ Added: ${top.title} (${top.release_date?.split("-")[0]}) → ${watchedYear}`,
         ]);
       } catch {
         setBulkProgress((prev) => [...prev, `❌ Error adding: ${line}`]);
@@ -192,12 +189,8 @@ export default function AddMovieForm({
                     </div>
                   )}
                   <div className="p-2">
-                    <p className="text-sm font-medium truncate">
-                      {movie.title}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {movie.release_date?.split("-")[0]}
-                    </p>
+                    <p className="text-sm font-medium truncate">{movie.title}</p>
+                    <p className="text-xs text-gray-400">{movie.release_date?.split("-")[0]}</p>
                   </div>
                 </div>
               ))}
@@ -209,16 +202,29 @@ export default function AddMovieForm({
 
       {mode === "bulk" && (
         <>
-          <p className="text-gray-400 text-sm mb-2">
-            Paste your movie list below — one movie per line. We'll search TMDB
-            and add the best match for each.
+          <p className="text-gray-400 text-sm mb-3">
+            Paste your movie list below — one movie per line. Optionally add a year after the title (e.g. "Batman 1989") to pick the right version. The watched year is set by the dropdown below.
           </p>
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-gray-400 text-sm">Year Watched:</label>
+            <select
+              value={bulkYear ?? ""}
+              onChange={(e) => setBulkYear(e.target.value ? parseInt(e.target.value) : null)}
+              className="bg-gray-800 text-white px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Defaults to current year ({currentYear})</option>
+              {Array.from({ length: currentYear - 2022 }, (_, i) => currentYear - i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            {bulkYear && (
+              <span className="text-blue-400 text-sm">Adding to {bulkYear}</span>
+            )}
+          </div>
           <textarea
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
-            placeholder={
-              "Inception\nThe Dark Knight\nForrest Gump\nInterstellar"
-            }
+            placeholder={"Guyver\nBatman 1989\nThe Dark Knight\nInception 2010"}
             rows={10}
             className="w-full bg-gray-800 rounded-lg px-4 py-2 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500 mb-4"
           />
@@ -227,14 +233,12 @@ export default function AddMovieForm({
             disabled={bulkRunning || !bulkText.trim()}
             className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg font-medium disabled:opacity-50"
           >
-            {bulkRunning ? "Adding movies..." : "Add All Movies"}
+            {bulkRunning ? "Adding movies..." : `Add All Movies${bulkYear ? ` to ${bulkYear}` : ` to ${currentYear}`}`}
           </button>
           {bulkProgress.length > 0 && (
             <div className="mt-4 bg-gray-800 rounded-lg p-4 max-h-48 overflow-y-auto">
               {bulkProgress.map((msg, i) => (
-                <p key={i} className="text-sm py-0.5">
-                  {msg}
-                </p>
+                <p key={i} className="text-sm py-0.5">{msg}</p>
               ))}
             </div>
           )}

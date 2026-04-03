@@ -1,6 +1,7 @@
 package com.movieapp.backend.web
 
 import com.movieapp.backend.model.Movie
+import com.movieapp.backend.repository.MovieRepository
 import com.movieapp.backend.service.MovieService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/movies")
-class MovieController(private val movieService: MovieService) {
+class MovieController(private val movieService: MovieService, private val movieRepository: MovieRepository) {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -55,9 +56,14 @@ class MovieController(private val movieService: MovieService) {
         source = request.source,
         addedBy = jwt.subject
     ))
+
     @GetMapping("/all")
-    fun getAll(): List<Movie> =
-        movieService.getAllMovies()
+    fun getAllMovies(): List<Movie> {
+        val movies = movieRepository.findAll()
+        println("Repository findAll returned: ${movies.size} movies")
+        movies.forEach { println("  - ${it.title}") }
+        return movies
+    }
 
     @DeleteMapping
     fun deleteMultiple(@RequestBody ids: List<String>) =
